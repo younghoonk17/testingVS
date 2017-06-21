@@ -14,7 +14,7 @@ using System.IO;
 using System.Threading.Tasks;
 using System.Json;
 using RestSharp;
-
+using Java.Nio;
 
 namespace App2
 {
@@ -28,38 +28,27 @@ namespace App2
         {
             base.OnCreate(bundle);
             SetContentView(Resource.Layout.Main);
-
+            var textbox = FindViewById<TextView>(Resource.Id.textArea_information);
             if (IsThereAnAppToTakePictures())
             {
                 CreateDirectoryForPictures();
 
                 Button button = FindViewById<Button>(Resource.Id.myButton);
                 _imageView = FindViewById<ImageView>(Resource.Id.imageView1);
-                button.Click += TakeAPicture;
+                button.Click +=TakeAPicture;
             }
 
-            Button button2 = FindViewById<Button>(Resource.Id.sendAPI);
-            var textbox = FindViewById<TextView>(Resource.Id.textArea_information);
-            button2.Click += async (sender, e) =>
-            {
-                // Get the latitude and longitude entered by the user and create a query.
-
-
-                // Fetch the weather information asynchronously, 
-                // parse the results, then update the screen:
-                string content = "{ \"url\":\"http://stanlemmens.nl/wp/wp-content/uploads/2014/07/bill-gates-wealthiest-person.jpg\"}";
-
-                string json = await restapi(url, content);
-                // ParseAndDisplay (json);
-                textbox.Text = json;
-            };
+           
+           
         }
 
 
 
         //api stuff
-        private async Task<string> restapi(string url, string content)
+        private string restapi(string url, Java.IO.File content)
         {
+            byte[] byteData = GetImageAsByteArray(content.AbsolutePath);
+
 
             const string subscriptionKey = "f6a1c8ee3728467aaf6be30a1f8a793f";
             
@@ -67,9 +56,9 @@ namespace App2
 
             var request = new RestRequest(Method.POST);
             request.AddHeader("Ocp-Apim-Subscription-Key", subscriptionKey);
-            request.AddHeader("Content-Type", "application/json");
+            request.AddHeader("Content-Type", "application/octet-stream");
 
-            request.AddParameter ( "application/json", content, ParameterType.RequestBody );
+            request.AddParameter ( "application/json", byteData, ParameterType.RequestBody );
 
             var answer = client.Execute(request);
 
@@ -77,6 +66,13 @@ namespace App2
                
 
             return answer.Content;
+        }
+
+        static byte[] GetImageAsByteArray(string imageFilePath)
+        {
+            FileStream fileStream = new FileStream(imageFilePath, FileMode.Open, FileAccess.Read);
+            BinaryReader binaryReader = new BinaryReader(fileStream);
+            return binaryReader.ReadBytes((int)fileStream.Length);
         }
 
 
@@ -118,6 +114,7 @@ namespace App2
             intent.PutExtra(MediaStore.ExtraOutput, Android.Net.Uri.FromFile(App._file));
             StartActivityForResult(intent, 0);
 
+
         }
 
         protected override void OnActivityResult(int requestCode, Result resultCode, Intent data)
@@ -143,6 +140,7 @@ namespace App2
                 _imageView.SetImageBitmap(App.bitmap);
                 App.bitmap = null;
             }
+
 
             // Dispose of the Java side bitmap.
             GC.Collect();
