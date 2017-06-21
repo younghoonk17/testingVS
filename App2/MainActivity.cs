@@ -15,6 +15,7 @@ using System.Threading.Tasks;
 using System.Json;
 using RestSharp;
 using Java.Nio;
+using Newtonsoft.Json;
 
 namespace App2
 {
@@ -35,11 +36,20 @@ namespace App2
 
                 Button button = FindViewById<Button>(Resource.Id.myButton);
                 _imageView = FindViewById<ImageView>(Resource.Id.imageView1);
-                button.Click +=TakeAPicture;
+                button.Click += (sender,e) => {
+                    TakeAPicture(sender,e);
+
+                };
             }
 
-           
-           
+            var button2 = FindViewById<Button>(Resource.Id.sendAPI);
+            button2.Click += (sender, e) => {
+
+                var apiResponse = restapi(url, App._file);
+                var x = JsonConvert.SerializeObject(apiResponse, Formatting.Indented);
+                textbox.Text = x;
+            };
+
         }
 
 
@@ -58,7 +68,7 @@ namespace App2
             request.AddHeader("Ocp-Apim-Subscription-Key", subscriptionKey);
             request.AddHeader("Content-Type", "application/octet-stream");
 
-            request.AddParameter ( "application/json", byteData, ParameterType.RequestBody );
+            request.AddParameter ("application/octet-stream", byteData, ParameterType.RequestBody );
 
             var answer = client.Execute(request);
 
