@@ -16,9 +16,16 @@ using System.Json;
 using RestSharp;
 using Java.Nio;
 using Newtonsoft.Json;
+using System.Threading;
 
 namespace App2
 {
+    public class Class1
+    {
+        public List<string> location { get; set; }
+        public List<string> emotion { get; set; }
+    }
+
     [Activity(Label = "App2", MainLauncher = true, Icon = "@drawable/icon")]
     public class MainActivity : Activity
     {
@@ -43,11 +50,13 @@ namespace App2
             }
 
             var button2 = FindViewById<Button>(Resource.Id.sendAPI);
-            button2.Click += (sender, e) => {
+            button2.Click += async (sender, e) => {
 
-                var apiResponse = restapi(url, App._file);
-                var x = JsonConvert.SerializeObject(apiResponse, Formatting.Indented);
-                textbox.Text = x;
+                var apiResponse = await restapi(url, App._file);
+
+                //var x = JsonConvert.DeserializeObject<Class1>(apiResponse);
+
+                textbox.Text = apiResponse;
             };
 
         }
@@ -55,10 +64,9 @@ namespace App2
 
 
         //api stuff
-        private string restapi(string url, Java.IO.File content)
+        private async Task<string> restapi(string url, Java.IO.File content)
         {
             byte[] byteData = GetImageAsByteArray(content.AbsolutePath);
-
 
             const string subscriptionKey = "f6a1c8ee3728467aaf6be30a1f8a793f";
             
@@ -70,12 +78,14 @@ namespace App2
 
             request.AddParameter ("application/octet-stream", byteData, ParameterType.RequestBody );
 
-            var answer = client.Execute(request);
+            Task<IRestResponse> t = client.ExecuteTaskAsync(request);
+            t.Wait();
+            var restResponse = await t;
 
-            System.Console.WriteLine(answer.Content);
+            System.Console.WriteLine(restResponse.Content);
                
 
-            return answer.Content;
+            return restResponse.Content;
         }
 
         static byte[] GetImageAsByteArray(string imageFilePath)

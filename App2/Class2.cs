@@ -12,19 +12,9 @@ using Android.Widget;
 
 namespace App2
 {
-    class Class1
+    public class Class2
     {
-        public location SubItem;
-        public emotion SubItem2;
-    }
-
-    class location
-    {
-
-    }
-
-    class emotion
-    {
-
+        public List<string> location { get; set; }
+        public List<string> emotion { get; set; }
     }
 }
