@@ -12,9 +12,12 @@ using Android.Widget;
 
 namespace App2
 {
-    public class Class2
+    public class response
     {
-        public List<string> location { get; set; }
-        public List<string> emotion { get; set; }
+        public IList<string> tags { get; set; }
+        public string requestId { get; set; }
+        public IList<string> metadata { get; set; }
     }
+
+
 }

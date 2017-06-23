@@ -17,6 +17,8 @@ using RestSharp;
 using Java.Nio;
 using Newtonsoft.Json;
 using System.Threading;
+using System.Reflection;
+using System.Linq;
 
 namespace App2
 {
@@ -29,14 +31,13 @@ namespace App2
     [Activity(Label = "App2", MainLauncher = true, Icon = "@drawable/icon")]
     public class MainActivity : Activity
     {
-        const string url = "https://westus.api.cognitive.microsoft.com/emotion/v1.0/recognize";
+        const string url = "https://southeastasia.api.cognitive.microsoft.com/vision/v1.0/tag";
 
 
         protected override void OnCreate(Bundle bundle)
         {
             base.OnCreate(bundle);
             SetContentView(Resource.Layout.Main);
-            var textbox = FindViewById<TextView>(Resource.Id.textArea_information);
             if (IsThereAnAppToTakePictures())
             {
                 CreateDirectoryForPictures();
@@ -54,38 +55,72 @@ namespace App2
 
                 var apiResponse = await restapi(url, App._file);
 
-                //var x = JsonConvert.DeserializeObject<Class1>(apiResponse);
-
-                textbox.Text = apiResponse;
+                ParseAndDisplay(apiResponse);
             };
 
         }
+        private void ParseAndDisplay(JsonValue json)
+        {
+            // Get the weather reporting fields from the layout resource:
+            TextView textbox = FindViewById<TextView>(Resource.Id.textArea_information);
 
+            //response res = JsonConvert.DeserializeObject<response>(json);
+
+            string itemIs = "";
+
+
+            for (int i =0; i< json["tags"].Count; i++)
+            {
+                JsonValue tmp = json["tags"];
+                JsonValue objects = tmp[i];
+                string name = objects["name"];
+                itemIs = itemIs + ", " + name;
+                if (i == 3)
+                {
+                    break;
+                }
+            }
+
+
+            
+            textbox.Text = itemIs;
+        }
 
 
         //api stuff
-        private async Task<string> restapi(string url, Java.IO.File content)
+        private async Task<JsonValue> restapi(string url, Java.IO.File content)
         {
             byte[] byteData = GetImageAsByteArray(content.AbsolutePath);
 
-            const string subscriptionKey = "f6a1c8ee3728467aaf6be30a1f8a793f";
-            
-            var client = new RestClient(url);
+            const string subscriptionKey = "98f4d6cfc1ca458b8f870a667f0b3ad1";
 
-            var request = new RestRequest(Method.POST);
-            request.AddHeader("Ocp-Apim-Subscription-Key", subscriptionKey);
-            request.AddHeader("Content-Type", "application/octet-stream");
 
-            request.AddParameter ("application/octet-stream", byteData, ParameterType.RequestBody );
+            HttpWebRequest request = (HttpWebRequest)HttpWebRequest.Create(new System.Uri(url));
+            request.ContentType = "application/json";
+            request.Method = "POST";
 
-            Task<IRestResponse> t = client.ExecuteTaskAsync(request);
-            t.Wait();
-            var restResponse = await t;
+            WebHeaderCollection header = new WebHeaderCollection();
+            header.Add("Ocp-Apim-Subscription-Key", subscriptionKey);
+            request.Headers = header;
+            request.ContentType = "application/octet-stream";
+            request.ContentLength = byteData.Length;
 
-            System.Console.WriteLine(restResponse.Content);
-               
+            var newStream = request.GetRequestStream();
+            newStream.Write(byteData, 0, byteData.Length);
+            newStream.Close();
 
-            return restResponse.Content;
+            using (WebResponse apiAnswer = await request.GetResponseAsync())
+            {
+                using (Stream stream = apiAnswer.GetResponseStream())
+                {
+                    // Use this stream to build a JSON document object:
+                    JsonValue jsonDoc = await Task.Run(() => System.Json.JsonObject.Load(stream));
+
+                    // Return the JSON document:
+                    return jsonDoc;
+                }
+
+            }
         }
 
         static byte[] GetImageAsByteArray(string imageFilePath)
